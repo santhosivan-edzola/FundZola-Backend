@@ -44,7 +44,25 @@ router.get('/', async (req, res, next) => {
     sql += ' ORDER BY dn.donation_date DESC';
 
     const [rows] = await pool.query(sql, params);
-    res.json({ success: true, data: rows });
+
+    // Attach category allocations for each donation
+    const donationIds = rows.map(r => r.id);
+    let allocMap = {};
+    if (donationIds.length) {
+      const [allocs] = await pool.query(
+        `SELECT da.*, pc.name AS category_name, pc.color AS category_color
+         FROM donation_allocations da
+         JOIN program_categories pc ON pc.id = da.category_id
+         WHERE da.donation_id IN (?)`,
+        [donationIds]
+      );
+      allocs.forEach(a => {
+        if (!allocMap[a.donation_id]) allocMap[a.donation_id] = [];
+        allocMap[a.donation_id].push(a);
+      });
+    }
+    const data = rows.map(r => ({ ...r, allocations: allocMap[r.id] || [] }));
+    res.json({ success: true, data });
   } catch (err) { next(err); }
 });
 

@@ -1,0 +1,4 @@
+USE fundzola;
+
+ALTER TABLE deals
+  ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;

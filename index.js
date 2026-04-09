@@ -15,6 +15,8 @@ const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const programsRouter = require('./routes/programs');
 const programCategoriesRouter = require('./routes/programCategories');
+const zohoRouter               = require('./routes/zoho');
+const { startScheduler }       = require('./utils/zohoSync');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,7 +24,7 @@ const PORT = process.env.PORT || 5000;
 // ── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:5175', 'http://127.0.0.1:5175'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
@@ -50,6 +52,7 @@ app.use('/api/deals', dealsRouter);
 app.use('/api/summary', summaryRouter);
 app.use('/api/programs', programsRouter);
 app.use('/api/program-categories', programCategoriesRouter);
+app.use('/api/zoho', zohoRouter);
 
 // ── 404 fallback ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -65,6 +68,7 @@ app.listen(PORT, async () => {
   try {
     await pool.query('SELECT 1');
     console.log('Database connection successful.');
+    startScheduler();
   } catch (err) {
     console.error('Database connection FAILED:', err.message);
   }

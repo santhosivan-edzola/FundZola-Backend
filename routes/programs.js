@@ -13,16 +13,14 @@ router.get('/', async (req, res, next) => {
     let sql = `
       SELECT
         p.*,
-        IFNULL(SUM(CASE WHEN d.stage = 'Received' THEN d.amount ELSE 0 END), 0) AS collected_amount,
-        COUNT(DISTINCT d.id) AS total_deals,
-        COUNT(DISTINCT pba.id) AS allocation_count
+        IFNULL((SELECT SUM(d.amount) FROM deals d WHERE d.program_id = p.id AND d.stage = 'Received'), 0) AS collected_amount,
+        (SELECT COUNT(*) FROM deals d WHERE d.program_id = p.id) AS total_deals,
+        (SELECT COUNT(*) FROM program_budget_allocations pba WHERE pba.program_id = p.id) AS allocation_count
       FROM programs p
-      LEFT JOIN deals d ON d.program_id = p.id
-      LEFT JOIN program_budget_allocations pba ON pba.program_id = p.id
       WHERE 1=1`;
     const params = [];
     if (status) { sql += ' AND p.status = ?'; params.push(status); }
-    sql += ' GROUP BY p.id ORDER BY p.created_at DESC';
+    sql += ' ORDER BY p.created_at DESC';
     const [rows] = await pool.query(sql, params);
     res.json({ success: true, data: rows });
   } catch (err) { next(err); }

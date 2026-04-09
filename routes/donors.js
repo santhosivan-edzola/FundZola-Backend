@@ -17,9 +17,9 @@ router.get('/', async (req, res, next) => {
       params.push(req.user.id);
     }
     if (search) {
-      sql += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR pan_number LIKE ?)';
+      sql += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR pan_number LIKE ? OR aadhaar_number LIKE ?)';
       const like = `%${search}%`;
-      params.push(like, like, like, like);
+      params.push(like, like, like, like, like);
     }
     if (type) {
       sql += ' AND donor_type = ?';
@@ -47,17 +47,32 @@ router.get('/:id', async (req, res, next) => {
 // POST /api/donors — create new donor, auto-generate donor_code
 router.post('/', checkPermission('donors', 'can_create'), async (req, res, next) => {
   try {
-    const { name, email, phone, address, pan_number, donor_type } = req.body;
+    const { name, email, phone, address, pan_number, aadhaar_number, donor_type } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'Donor name is required.' });
+
+    // Backend validation
+    if (pan_number) {
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panRegex.test(pan_number.trim().toUpperCase()))
+        return res.status(400).json({ success: false, message: 'Invalid PAN format. Must be like ABCDE1234F.' });
+    }
+    if (aadhaar_number) {
+      const cleaned = aadhaar_number.trim().replace(/\s/g, '');
+      if (!/^\d{12}$/.test(cleaned))
+        return res.status(400).json({ success: false, message: 'Aadhaar must be exactly 12 digits.' });
+    }
 
     await pool.query('CALL sp_next_donor_code(@donor_code)');
     const [[codeResult]] = await pool.query('SELECT @donor_code AS donor_code');
     const donor_code = codeResult.donor_code;
 
     const [result] = await pool.query(
-      `INSERT INTO donors (donor_code, name, email, phone, address, pan_number, donor_type, is_active, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
-      [donor_code, name, email || null, phone || null, address || null, pan_number || null, donor_type || 'Individual', req.user.id]
+      `INSERT INTO donors (donor_code, name, email, phone, address, pan_number, aadhaar_number, donor_type, is_active, created_by, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
+      [donor_code, name, email || null, phone || null, address || null,
+       pan_number ? pan_number.trim().toUpperCase() : null,
+       aadhaar_number ? aadhaar_number.trim().replace(/\s/g, '') : null,
+       donor_type || 'Individual', req.user.id]
     );
 
     const [rows] = await pool.query('SELECT * FROM donors WHERE id = ?', [result.insertId]);
@@ -69,7 +84,18 @@ router.post('/', checkPermission('donors', 'can_create'), async (req, res, next)
 router.put('/:id', checkPermission('donors', 'can_edit'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, address, pan_number, donor_type } = req.body;
+    const { name, email, phone, address, pan_number, aadhaar_number, donor_type } = req.body;
+
+    if (pan_number) {
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panRegex.test(pan_number.trim().toUpperCase()))
+        return res.status(400).json({ success: false, message: 'Invalid PAN format. Must be like ABCDE1234F.' });
+    }
+    if (aadhaar_number) {
+      const cleaned = aadhaar_number.trim().replace(/\s/g, '');
+      if (!/^\d{12}$/.test(cleaned))
+        return res.status(400).json({ success: false, message: 'Aadhaar must be exactly 12 digits.' });
+    }
 
     const [result] = await pool.query(
       `UPDATE donors SET
@@ -78,10 +104,14 @@ router.put('/:id', checkPermission('donors', 'can_edit'), async (req, res, next)
         phone = COALESCE(?, phone),
         address = COALESCE(?, address),
         pan_number = COALESCE(?, pan_number),
+        aadhaar_number = COALESCE(?, aadhaar_number),
         donor_type = COALESCE(?, donor_type),
         updated_at = NOW()
       WHERE id = ? AND is_active = 1`,
-      [name, email, phone, address, pan_number, donor_type, id]
+      [name, email, phone, address,
+       pan_number ? pan_number.trim().toUpperCase() : null,
+       aadhaar_number ? aadhaar_number.trim().replace(/\s/g, '') : null,
+       donor_type, id]
     );
 
     if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Donor not found.' });
