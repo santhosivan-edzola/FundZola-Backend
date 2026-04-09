@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fundzola_jwt_secret_key';
 // GET /api/auth/setup-needed — check if first-time setup is required (public)
 router.get('/setup-needed', async (req, res, next) => {
   try {
-    const [[{ count }]] = await pool.query('SELECT COUNT(*) AS count FROM app_users WHERE role = "admin"');
+    const [[{ count }]] = await pool.query("SELECT COUNT(*) AS count FROM app_users WHERE role = 'admin'");
     res.json({ success: true, setupNeeded: parseInt(count) === 0 });
   } catch (err) { next(err); }
 });
@@ -18,7 +18,7 @@ router.get('/setup-needed', async (req, res, next) => {
 // POST /api/auth/setup — create first admin (only if no admin exists)
 router.post('/setup', async (req, res, next) => {
   try {
-    const [[{ count }]] = await pool.query('SELECT COUNT(*) AS count FROM app_users WHERE role = "admin"');
+    const [[{ count }]] = await pool.query("SELECT COUNT(*) AS count FROM app_users WHERE role = 'admin'");
     if (parseInt(count) > 0) {
       return res.status(403).json({ success: false, message: 'Admin already exists.' });
     }
@@ -27,7 +27,7 @@ router.post('/setup', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'name, email, and password are required.' });
     }
     const hash = await bcrypt.hash(password, 10);
-    await pool.query('INSERT INTO app_users (name, email, password_hash, role) VALUES (?, ?, ?, "admin")', [name, email, hash]);
+    await pool.query('INSERT INTO app_users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', [name, email, hash, 'admin']);
     res.json({ success: true, message: 'Admin account created. You can now log in.' });
   } catch (err) { next(err); }
 });
