@@ -8,22 +8,28 @@ const errorHandler = require('./middleware/errorHandler');
 const organizationsRouter = require('./routes/organizations');
 const donorsRouter = require('./routes/donors');
 const donationsRouter = require('./routes/donations');
-const expensesRouter = require('./routes/expenses');  
+const expensesRouter = require('./routes/expenses');
 const dealsRouter = require('./routes/deals');
 const summaryRouter = require('./routes/summary');
 const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const programsRouter = require('./routes/programs');
 const programCategoriesRouter = require('./routes/programCategories');
-const zohoRouter               = require('./routes/zoho');
-const { startScheduler }       = require('./utils/zohoSync');
+const zohoRouter = require('./routes/zoho');
+const { startScheduler } = require('./utils/zohoSync');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:5175', 'http://127.0.0.1:5175'],
+  origin: ['http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
+    'http://localhost:5175',
+    'http://127.0.0.1:5175',
+    'https://fundzola-frontend-1.onrender.com'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
