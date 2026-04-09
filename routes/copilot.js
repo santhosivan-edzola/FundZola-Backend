@@ -65,7 +65,7 @@ async function buildDBContext(fy) {
      FROM donations d JOIN donors dn ON d.donor_id = dn.id ${donWhere}
      GROUP BY d.donor_id ORDER BY total DESC LIMIT 8`, params);
   const [dealPipeline]    = await pool.query('SELECT stage, COUNT(*) AS cnt, COALESCE(SUM(amount),0) AS total FROM deals GROUP BY stage ORDER BY total DESC');
-  const [programs]        = await pool.query("SELECT name, status, COALESCE(budget,0) AS budget FROM programs WHERE status='Active' LIMIT 8");
+  const [programs]        = await pool.query("SELECT title AS name, status, COALESCE(estimated_budget,0) AS budget FROM programs WHERE status='Active' LIMIT 8");
   const [[noReceipt]]     = await pool.query(`SELECT COUNT(*) AS cnt FROM donations d LEFT JOIN receipt_log r ON r.donation_id=d.id WHERE r.id IS NULL ${donWhere ? 'AND donation_date BETWEEN ? AND ?' : ''}`, donWhere ? params : []);
 
   return { org, donorStats, donTotal, expTotal, donByCat, expByCat, topDonors, dealPipeline, programs, noReceipt, fy: fy || 'All time' };
