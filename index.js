@@ -15,8 +15,9 @@ const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const programsRouter = require('./routes/programs');
 const programCategoriesRouter = require('./routes/programCategories');
-const zohoRouter = require('./routes/zoho');
-const { startScheduler } = require('./utils/zohoSync');
+const zohoRouter               = require('./routes/zoho');
+const copilotRouter            = require('./routes/copilot');
+const { startScheduler }       = require('./utils/zohoSync');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -59,6 +60,7 @@ app.use('/api/summary', summaryRouter);
 app.use('/api/programs', programsRouter);
 app.use('/api/program-categories', programCategoriesRouter);
 app.use('/api/zoho', zohoRouter);
+app.use('/api/copilot', copilotRouter);
 
 // ── 404 fallback ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
