@@ -30,6 +30,7 @@ router.put('/:id', async (req, res, next) => {
       registration_number,
       pan_80g,
       signatory,
+      signatory_name,
       signatory_designation,
     } = req.body;
 
@@ -44,13 +45,13 @@ router.put('/:id', async (req, res, next) => {
         email = COALESCE(?, email),
         registration_number = COALESCE(?, registration_number),
         pan_80g = COALESCE(?, pan_80g),
-        signatory = COALESCE(?, signatory),
+        signatory_name = COALESCE(?, signatory_name),
         signatory_designation = COALESCE(?, signatory_designation),
         updated_at = NOW()
       WHERE id = ?`,
       [
         org_name, address, city, state, pincode, phone, email,
-        registration_number, pan_80g, signatory, signatory_designation,
+        registration_number, pan_80g, signatory ?? signatory_name, signatory_designation,
         id,
       ]
     );
