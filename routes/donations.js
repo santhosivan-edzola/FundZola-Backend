@@ -66,6 +66,29 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/donations/:id/category-breakdown
+router.get('/:id/category-breakdown', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(`
+      SELECT
+        pc.id,
+        pc.name,
+        pc.color,
+        COALESCE(da.amount, 0)          AS allocated,
+        COALESCE(SUM(e.amount), 0)      AS spent,
+        COALESCE(da.amount, 0) - COALESCE(SUM(e.amount), 0) AS remaining
+      FROM program_categories pc
+      LEFT JOIN donation_allocations da ON da.category_id = pc.id AND da.donation_id = ?
+      LEFT JOIN expenses e              ON e.category_id  = pc.id AND e.donation_id  = ?
+      WHERE da.donation_id = ? OR e.donation_id = ?
+      GROUP BY pc.id, pc.name, pc.color, da.amount
+      ORDER BY allocated DESC
+    `, [id, id, id, id]);
+    res.json({ success: true, data: rows });
+  } catch (err) { next(err); }
+});
+
 // GET /api/donations/:id
 router.get('/:id', async (req, res, next) => {
   try {
