@@ -5,7 +5,8 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fundzola_jwt_secret_key';
+const JWT_SECRET         = process.env.JWT_SECRET         || 'fundzola_jwt_secret_key';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fundzola_jwt_refresh_secret_key';
 
 // GET /api/auth/setup-needed — check if first-time setup is required (public)
 router.get('/setup-needed', async (req, res, next) => {
@@ -48,15 +49,35 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
     const [perms] = await pool.query('SELECT * FROM user_permissions WHERE user_id = ?', [user.id]);
-    const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const accessToken  = jwt.sign({ id: user.id, role: user.role, email: user.email }, JWT_SECRET,         { expiresIn: '15m' });
+    const refreshToken = jwt.sign({ id: user.id },                                     JWT_REFRESH_SECRET, { expiresIn: '7d'  });
     res.json({
       success: true,
       data: {
-        token,
+        accessToken,
+        refreshToken,
         user: { id: user.id, name: user.name, email: user.email, role: user.role },
         permissions: perms,
       },
     });
+  } catch (err) { next(err); }
+});
+
+// POST /api/auth/refresh — exchange a valid refresh token for a new access token
+router.post('/refresh', async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ success: false, message: 'Refresh token required.' });
+    let payload;
+    try {
+      payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token.' });
+    }
+    const [[user]] = await pool.query('SELECT id, role, email, is_active FROM app_users WHERE id = ?', [payload.id]);
+    if (!user || !user.is_active) return res.status(401).json({ success: false, message: 'User not found or inactive.' });
+    const accessToken = jwt.sign({ id: user.id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '15m' });
+    res.json({ success: true, data: { accessToken } });
   } catch (err) { next(err); }
 });
 

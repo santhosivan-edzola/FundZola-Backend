@@ -10,7 +10,7 @@ router.use(requireAuth);
 function callClaude(systemPrompt, messages) {
   const body = JSON.stringify({
     model:      'claude-haiku-4-5-20251001',
-    max_tokens: 1500,
+    max_tokens: 2000,
     system:     systemPrompt,
     messages,
   });
@@ -107,7 +107,22 @@ ${ctx.programs?.map(p => `  - ${p.name} (budget: ${fmt(p.budget)})`).join('\n') 
 
 DONATIONS WITHOUT RECEIPTS: ${ctx.noReceipt?.cnt || 0}
 
-Answer questions about this data. If asked about something not in the data, say so honestly.`;
+Answer questions about this data. If asked about something not in the data, say so honestly.
+
+=== CHART INSTRUCTION ===
+Whenever your answer contains 2 or more numerical data points (rankings, breakdowns, comparisons), append a CHART_JSON block at the very end of your reply. Use this exact format on its own line (no code fences):
+
+CHART_JSON:{"type":"bar","title":"Short chart title","data":[{"name":"Label","value":123}],"keys":["value"]}
+
+Rules:
+- type "bar" for rankings or comparisons (top donors, fund totals, deal stages, etc.)
+- type "pie" for distributions or breakdowns (category splits, percentages, fund allocation)
+- type "grouped_bar" when comparing two metrics side-by-side (e.g. donated vs expended); use keys with multiple entries and include both keys in each data object
+- "name" values must be short (≤20 chars)
+- "value" must be a plain number (no ₹ symbol, no commas)
+- Only include CHART_JSON when you have at least 2 data points
+- Do NOT include CHART_JSON for simple single-number answers or yes/no answers
+- CHART_JSON must always be the last line of your reply`;
 }
 
 // ── GET /api/copilot/conversations ────────────────────────────────────────────
